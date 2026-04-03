@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tiiny AI | عالم الأسئلة الذكي ✨</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    
+    <style>
+        /* سأحتفظ بنفس الستايل الخاص بك تماماً دون أي تغيير كما طلبت */
+        :root {
+            --main-purple: #6c5ce7;
+            --accent-orange: #ff7675;
+            --fresh-green: #00b894;
+            --soft-white: #ffffff;
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --code-bg: #2d3436;
+            --border-radius: 20px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.85)), 
+                        url('https://i.postimg.cc/nzjsjKgb/Boomerangs.jpg');
+            background-size: cover; background-position: center; background-attachment: fixed;
+            margin: 0; padding: 0; color: #2d3436; min-height: 100vh; overflow-x: hidden; -webkit-tap-highlight-color: transparent;
+        }
+
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 15px; background: var(--glass-bg); backdrop-filter: blur(15px); position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08); border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .logo-area { display: flex; align-items: center; gap: 8px; }
+        .logo-area img { width: 35px; height: 35px; object-fit: contain; }
+        .logo-area span { font-size: 18px; font-weight: 800; background: linear-gradient(45deg, var(--main-purple), var(--accent-orange)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .btn-style { padding: 8px 15px; border-radius: 25px; border: none; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.3s; }
+        .login-btn { background: var(--main-purple); color: white; }
+        .logout-btn { background: var(--accent-orange); color: white; display: none; }
+        .admin-btn { background: #2d3436; color: white; display: none; margin-left: 5px; }
+
+        .hero { text-align: center; padding: 40px 15px 10px; }
+        .hero h1 { font-size: 2.2rem; margin-bottom: 5px; }
+        .hero p { color: #636e72; font-size: 1rem; margin-top: 0; }
+
+        .search-wrapper { max-width: 100%; margin: 25px auto; display: flex; gap: 10px; padding: 0 10px; box-sizing: border-box; }
+        .main-input { flex: 1; padding: 15px 20px; border-radius: 50px; border: 2px solid transparent; box-shadow: 0 8px 25px rgba(0,0,0,0.08); font-size: 16px; outline: none; transition: 0.4s; background: white; width: 100%; box-sizing: border-box; }
+        .main-input:focus { border-color: var(--main-purple); }
+
+        .send-btn { background: var(--main-purple); color: white; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; font-size: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 5px 15px rgba(108, 92, 231, 0.3); }
+
+        #result-area { max-width: 100%; margin: 10px auto 40px; padding: 0 15px; display: none; }
+        .chat-bubble { background: var(--glass-bg); padding: 20px; border-radius: var(--border-radius); border-right: 6px solid var(--main-purple); backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0,0,0,0.05); animation: slideUp 0.5s ease-out; line-height: 1.6; word-wrap: break-word; }
+
+        #custom-toast {
+            visibility: hidden; min-width: 200px; background-color: var(--main-purple); color: #fff;
+            text-align: center; border-radius: 50px; padding: 12px 20px; position: fixed;
+            z-index: 2000; left: 50%; bottom: 20px; transform: translateX(-50%);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2); font-weight: bold; font-size: 14px;
+        }
+        #custom-toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid var(--main-purple); border-radius: 50%; width: 25px; height: 25px; animation: spin 1s linear infinite; display: block; margin: 10px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 25px; border-radius: 25px; width: 85%; max-width: 400px; text-align: center; max-height: 85vh; overflow-y: auto; position: relative; }
+        .modal-content input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 12px; border: 1px solid #eee; background: #f9f9f9; box-sizing: border-box; outline: none; font-size: 16px; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
+        th, td { border: 1px solid #eee; padding: 8px; text-align: center; }
+        th { background-color: var(--main-purple); color: white; }
+
+        @media screen and (max-width: 480px) {
+            .hero h1 { font-size: 1.8rem; }
+            .hero p { font-size: 0.9rem; }
+            .main-input { padding: 12px 18px; font-size: 15px; }
+            .chat-bubble { font-size: 14px; }
+            .admin-btn { font-size: 11px; padding: 8px 12px; }
+            .logo-area span { font-size: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-area">
+            <img src="https://i.postimg.cc/DyY64hCF/Boomerangs-removebg-preview.png" alt="Tiiny AI Logo">
+            <span>Tiiny AI</span>
+        </div>
+        <div class="user-controls">
+            <button id="admin-nav-btn" class="btn-style admin-btn" onclick="openAdminModal()">الأدمن 🛠️</button>
+            <button id="login-nav-btn" class="btn-style login-btn" onclick="openModal()">دخول</button>
+            <button id="logout-nav-btn" class="btn-style logout-btn" onclick="logout()">خروج</button>
+        </div>
+    </header>
+
+    <div id="custom-toast"></div>
+
+    <section class="hero">
+        <span id="display-name" style="font-weight: bold; color: var(--main-purple); display: none; margin-bottom: 10px; font-size: 14px;"></span>
+        <h1>Tiiny<span style="color: var(--main-purple);">.AI</span> ✨</h1>
+        <p>Tiiny هنا لمساعدتك دائما🤖</p>
+        
+        <div class="search-wrapper">
+            <input type="text" id="userInput" class="main-input" placeholder="اسأل أي سؤال...🚀" inputmode="search">
+            <button class="send-btn" onclick="askTiiny()">➔</button>
+        </div>
+    </section>
+
+    <div id="result-area">
+        <div class="chat-bubble">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                <img src="https://i.postimg.cc/DyY64hCF/Boomerangs-removebg-preview.png" style="width: 25px; height: 25px; object-fit: contain;">
+                <strong style="color: var(--main-purple); font-size: 1rem;">الإجابة هي:</strong>
+            </div>
+            <div id="answer-content">
+                <div id="answer-text"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title">مرحباً بك 👋</h3>
+            <div id="register-fields" style="display: none;">
+                <input type="text" id="reg-name" placeholder="الاسم الكامل">
+            </div>
+            <input type="email" id="auth-email" placeholder="البريد الإلكتروني">
+            <input type="password" id="auth-pass" placeholder="كلمة المرور">
+            <button id="main-auth-btn" class="btn-style login-btn" style="width: 100%;" onclick="handleAuthAction()">دخول</button>
+            <p><span id="toggle-text">ليس لديك حساب؟</span> <span style="color:var(--main-purple); cursor:pointer;" onclick="toggleAuthMode()">إنشاء حساب</span></p>
+            <button onclick="closeModal()">إغلاق</button>
+        </div>
+    </div>
+
+    <div id="adminModal" class="modal">
+        <div class="modal-content" style="width: 92%;">
+            <h3>لوحة تحكم المدير 🛠️</h3>
+            <div id="users-list"></div>
+            <hr>
+            <div id="search-history-list"></div>
+            <button onclick="closeAdminModal()" class="btn-style login-btn" style="width: 100%;">إغلاق</button>
+        </div>
+    </div>
+
+    <script>
+        // بيانات Firebase الخاصة بك من الصورة
+        const firebaseConfig = {
+            apiKey: "AIzaSyAtVYOPmarIZPx7nB0CFcnBv2nORoKJE7g",
+            authDomain: "tiiny-72b28.firebaseapp.com",
+            databaseURL: "https://tiiny-72b28-default-rtdb.firebaseio.com",
+            projectId: "tiiny-72b28",
+            storageBucket: "tiiny-72b28.appspot.com",
+            messagingSenderId: "123456789", // تأكد من تحديث هذا الرقم من الإعدادات لاحقاً
+            appId: "1:123456789:web:abcdef" // تأكد من تحديث هذا المعرف من الإعدادات لاحقاً
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        let isLoginMode = true;
+        let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+
+        window.onload = function() {
+            if(currentUser) loginSuccess(currentUser.name, currentUser.email);
+        };
+
+        function showToast(msg) {
+            const toast = document.getElementById("custom-toast");
+            toast.innerText = msg;
+            toast.className = "show";
+            setTimeout(() => toast.className = "", 3000);
+        }
+
+        function openModal() { document.getElementById('authModal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('authModal').style.display = 'none'; }
+        function openAdminModal() { renderAdminData(); document.getElementById('adminModal').style.display = 'flex'; }
+        function closeAdminModal() { document.getElementById('adminModal').style.display = 'none'; }
+
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            document.getElementById('modal-title').innerText = isLoginMode ? 'تسجيل الدخول' : 'إنشاء حساب جديد';
+            document.getElementById('register-fields').style.display = isLoginMode ? 'none' : 'block';
+        }
+
+        function handleAuthAction() {
+            const emailInput = document.getElementById('auth-email').value;
+            const emailKey = emailInput.replace(/\./g, '_');
+            const pass = document.getElementById('auth-pass').value;
+
+            if (!emailInput || !pass) { showToast("لطفاً، أكمل البيانات ✍️"); return; }
+
+            if (isLoginMode) {
+                database.ref('users/' + emailKey).once('value').then((snap) => {
+                    const user = snap.val();
+                    if (user && user.password === pass) {
+                        currentUser = user;
+                        localStorage.setItem('currentUser', JSON.stringify(user));
+                        loginSuccess(user.name, user.email);
+                    } else { showToast("البيانات غير صحيحة ❌"); }
+                });
+            } else {
+                const name = document.getElementById('reg-name').value;
+                if (!name) return;
+                const newUser = { name, email: emailInput, password: pass };
+                database.ref('users/' + emailKey).set(newUser).then(() => {
+                    showToast("تم التسجيل! 🎉");
+                    toggleAuthMode();
+                });
+            }
+        }
+
+        function loginSuccess(name, email) {
+            document.getElementById('display-name').innerText = "أهلاً، " + name + " 👋";
+            document.getElementById('display-name').style.display = "block";
+            document.getElementById('login-nav-btn').style.display = "none";
+            document.getElementById('logout-nav-btn').style.display = "block";
+            // حسابك كأدمن يا أحمد
+            if(email === "Ahmedmostafa@gmail.com") document.getElementById('admin-nav-btn').style.display = "inline-block";
+            closeModal();
+        }
+
+        function logout() { localStorage.removeItem('currentUser'); location.reload(); }
+
+        function renderAdminData() {
+            database.ref('users').once('value').then(snap => {
+                let html = "<table><tr><th>الاسم</th><th>الإيميل</th></tr>";
+                snap.forEach(child => { html += `<tr><td>${child.val().name}</td><td>${child.val().email}</td></tr>`; });
+                document.getElementById('users-list').innerHTML = html + "</table>";
+            });
+            database.ref('search_history').limitToLast(10).once('value').then(snap => {
+                let html = "<table><tr><th>المستخدم</th><th>البحث</th></tr>";
+                let arr = []; snap.forEach(c => arr.push(c.val()));
+                arr.reverse().forEach(h => { html += `<tr><td>${h.user}</td><td>${h.query}</td></tr>`; });
+                document.getElementById('search-history-list').innerHTML = html + "</table>";
+            });
+        }
+
+        async function askTiiny() {
+            const input = document.getElementById('userInput').value.trim();
+            if (!input) return;
+            
+            document.getElementById('result-area').style.display = "block";
+            document.getElementById('answer-text').innerHTML = '<div class="loader"></div>';
+
+            // تسجيل البحث في Firebase
+            database.ref('search_history').push({
+                user: currentUser ? currentUser.name : "زائر",
+                query: input,
+                time: new Date().toISOString()
+            });
+
+            try {
+                // استخدام API بسيط للرد (يمكنك استبداله بـ Gemini Key لاحقاً لردود أذكى)
+                const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(input)}&format=json&no_html=1`);
+                const data = await res.json();
+                document.getElementById('answer-text').innerText = data.AbstractText || "لم أجد إجابة دقيقة، جرب سؤالاً آخر!";
+            } catch {
+                document.getElementById('answer-text').innerText = "حدث خطأ في الاتصال ❌";
+            }
+            document.getElementById('userInput').value = "";
+        }
+    </script>
+    <footer style="text-align:center; padding:10px; font-size:10px; color:#999;">Created by S3 for Web Design</footer>
+</body>
+</html>
